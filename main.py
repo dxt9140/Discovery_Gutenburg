@@ -10,6 +10,7 @@ import argparse
 import json
 import os
 import sys
+from ibm_cloud_sdk_core.api_exception import ApiException
 
 
 if __name__ == '__main__':
@@ -19,7 +20,7 @@ if __name__ == '__main__':
                         action='store_true', help="Switch mode to Natural Language Query mode.")
     parser.add_argument("-s", "--single-query", dest="single", type=str, nargs=1,
                         help="Specify that a single query is being placed, and not to enter interactive mode.")
-    parser.add_argument("--count", help="Modify the number of documents to return", default=5, dest="count")
+    parser.add_argument("--count", help="Modify the number of documents to return", default=5, dest="count", type=int)
     argl = parser.parse_args()
 
     if not os.path.exists(argl.config):
@@ -52,8 +53,13 @@ if __name__ == '__main__':
         else:
             query = input("> ")
 
+        query = query.strip()
+        if not query:
+            continue
+
         if query in ["quit", "exit", "stop"]:
             should_continue = False
+            continue
         print()
 
         try:
@@ -63,6 +69,16 @@ if __name__ == '__main__':
             else:
                 query = discovery.query(environment_id=envid, collection_id=collid, query=query,
                                         count=argl.count)
+
+            results = query.result
+            for entry in results["results"]:
+                print(entry["Title"] + ": " + entry["url"])
+
+            print()
+
+        except ApiException as e:
+            print("Error: " + e.message)
+            pass
 
         except Exception as e:
             raise e
